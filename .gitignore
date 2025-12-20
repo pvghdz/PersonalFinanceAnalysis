@@ -1,3 +1,6 @@
+# Google Cloud Services service account key
+ServiceAccountKeys/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
