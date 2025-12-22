@@ -20,6 +20,9 @@ $$z_i = \frac{x_i - \overline{x}}{\sigma}$$
 
 where $\sigma$ is the standard deviation. Since it relies on the mean and stddev, it is quite susceptible to outliers. Therefore, we use the modified Z-score:
 
-$$mz_i = 0.6745 \,\frac{x_i-\tilde{x}}{MAD}$$
+$$mz_i = 0.6745 \,\frac{x_i-\tilde{x}}{\text{MAD}}$$
 
-Where $\tilde{x}$ is the median and MAD the median absolute deviation value. An observation is considered a potential outlier if it falls more than 3.5 MAD from the median, i.e. $\vert mz_i \vert > 3.5$.
+Where $\tilde{x}$ is the median and MAD the median absolute deviation value, sometimes also called the median absolute deviation from the median (MADFM); that is, the median ob the absolute deviations from the data's median: $\text{MAD} = \text{median}\vert x_i - \tilde{x} \vert$. An observation is considered a potential outlier if it falls more than 3.5 MAD from the median, i.e. $\vert mz_i \vert > 3.5$ The 3.5 is a recommended value, but I might just use 2.5. In turn
+
+Sources:
+Outlier detection: \href{https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm}{NIST}.
