@@ -1,6 +1,12 @@
 # Google Cloud Services service account key
 ServiceAccountKeys/
 
+# File where personal data is stored
+data/
+
+# Results log
+results.log
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
