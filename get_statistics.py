@@ -3,8 +3,42 @@ from finance_loader import load_finance_dataframe
 from config.numeric_cols import numeric_cols
 import scipy.stats as stats
 import numpy as np
+import logging
+
+
+truncation = True
+truncationDateDown = '2024-10-30'
+truncationDateUp = '2026-01-01'
+outlier_threshold = 2.0
+
+# Configure logging to write to file and console
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(message)s',
+    handlers=[
+        logging.FileHandler('results.log', mode='w'),  # 'w' overwrites, 'a' appends
+        logging.StreamHandler()  # Also print to console
+    ]
+)
+
+logger = logging.getLogger(__name__)
 
 debug=False
+
+def format_dataframe_for_logging(df, max_cols=None):
+    """
+    Format dataframe for logging with better readability.
+    Optionally limit number of columns shown if too wide.
+    """
+    if max_cols and len(df.columns) > max_cols:
+        # Show first few and last few columns
+        first_cols = df.iloc[:, :max_cols//2]
+        last_cols = df.iloc[:, -max_cols//2:]
+        # Create ellipsis column
+        ellipsis_series = pd.Series(['...'] * len(df), index=df.index, name='...')
+        formatted = pd.concat([first_cols, ellipsis_series, last_cols], axis=1)
+        return formatted.to_string()
+    return df.to_string()
 
 def _compute_mad(month_df):
     """
@@ -117,65 +151,46 @@ def compute_category_statistics(absolute_matrix):
     
     return stats_df, stats_dict 
 
-truncation = True
-truncationDate = '2024-10-30'
-"""
-numeric_cols = [
-        "Cantidad",
-        "Suma",
-        "Alimentos",
-        "Recurrentes",
-        "Extraordinarios",
-        "Salidas",
-        "Viajes",
-        "Otros/Únicos",
-        "Inversiones",
-        "Ingreso",
-    ]
-"""
-
 df = load_finance_dataframe(
     spreadsheet_name="Gastos Pablo",
     credentials_path="ServiceAccountKeys/analisisfinanzaspersonales-50c60b68412d.json",
 )
 
-print('------------------------')
+logger.info('='*60)
+logger.info('Starting financial analysis')
+logger.info('='*60)
 
-print('\n',df.head(),'\n')
-print(df.info(),'\n')
+logger.debug(f'\nDataFrame head:\n{df.head()}')
+logger.debug(f'\nDataFrame info:\n{df.info()}')
 
-# Only analyze months after October 2024
+# Only analyze months after October 2024 and before Jan 2026
 if truncation:
-    df = df[df['Fecha'] > truncationDate] # filter dataframe
+    df = df[df['Fecha'] > truncationDateDown] # filter downwards
+    df = df[df['Fecha'] < truncationDateUp] # filter downwards
 
 months = df["sheet_name"].unique()
-print(f'Dataframe truncated. Analyzing months: {months}\n')
+logger.info(f'Dataframe truncated. Analyzing months: {months}')
 
-#expense_matrix = {}
-#norm_expense_matrix = {}
-#expense_matrix['Order'] = numeric_cols
-#norm_expense_matrix['Order'] = numeric_cols
-#month_df = df[df["sheet_name"] == months]
 expenses = [c for c in numeric_cols if c != "Ingreso"]
 monthly_results = {}
 
 for month in months:
     month_df = df[df["sheet_name"] == month]
 
-    print(f'{month} df = \n{month_df.head()}')
+    logger.debug(f'{month} df head:\n{month_df.head()}')
 
     if month_df.empty:
+        logger.warning(f'Month {month} has no data, skipping')
         continue
 
     # Debug: Check what we're summing
     if debug:
-        print(f"\n=== Debug for {month} ===")
-        print(f"Number of rows: {len(month_df)}")
-        print(f"Sample Cantidad values (first 10):")
-        print(month_df["Cantidad"].head(10).tolist())
-        print(f"Cantidad sum: {month_df['Cantidad'].sum():.2f}")
-        print(f"Cantidad mean: {month_df['Cantidad'].mean():.2f}")
-        print(f"Are there duplicates? {month_df.duplicated().sum()} duplicate rows")
+        logger.debug(f"\n=== Debug for {month} ===")
+        logger.debug(f"Number of rows: {len(month_df)}")
+        logger.debug(f"Sample Cantidad values (first 10): {month_df['Cantidad'].head(10).tolist()}")
+        logger.debug(f"Cantidad sum: {month_df['Cantidad'].sum():.2f}")
+        logger.debug(f"Cantidad mean: {month_df['Cantidad'].mean():.2f}")
+        logger.debug(f"Are there duplicates? {month_df.duplicated().sum()} duplicate rows")
     
     # Calculate sums for expense categories
     monthly_sum = month_df[expenses].sum()
@@ -202,7 +217,7 @@ for month in months:
 
     monthly_results[month] = summary_df
 
-    print(f"Month {month} analyzed.")
+    logger.info(f"Month {month} analyzed - Income: {monthly_income:.2f}, Total expenses: {monthly_sum.sum():.2f}")
 
 absolute_matrix = pd.concat(
     {m: df["absolute"] for m, df in monthly_results.items()},
@@ -217,17 +232,42 @@ normalized_matrix = pd.concat(
 # Calculate statistics for each category across months
 category_stats_df, category_stats_dict = compute_category_statistics(absolute_matrix)
 
-print(f'\n{"="*60}')
-print(f'Expense matrix (absolute):\n{absolute_matrix}')
-print(f'\n{"="*60}')
-print(f'Normalized expense matrix:\n{normalized_matrix}')
-print(f'\n{"="*60}')
-print(f'Category Statistics:\n{category_stats_df}')
-print(f'\n{"="*60}')
+logger.info('\n'+'='*60)
+logger.info('ANALYSIS RESULTS')
+logger.info('='*60)
+
+# Transpose matrices for better readability (months as rows, categories as columns)
+# Round to 2 decimal places for cleaner output
+absolute_matrix_T = absolute_matrix.T.round(2)
+normalized_matrix_T = normalized_matrix.T.round(2)
+
+logger.info(f'\nExpense matrix (absolute) - Transposed (months x categories):')
+logger.info(f'{format_dataframe_for_logging(absolute_matrix_T, max_cols=15)}')
+logger.info(f'\nNormalized expense matrix - Transposed (months x categories):')
+logger.info(f'{format_dataframe_for_logging(normalized_matrix_T, max_cols=15)}')
+
+# For category statistics, separate the main stats from modified Z-scores
+main_stats = category_stats_df[['median', 'mad', 'mean', 'std', 'min', 'max']].round(2)
+mod_z_cols = [col for col in category_stats_df.columns if col.startswith('mod_z_')]
+
+logger.info(f'\nCategory Statistics - Main metrics:')
+logger.info(f'{main_stats.to_string()}')
+
+if mod_z_cols:
+    mod_z_df = category_stats_df[mod_z_cols].round(2)
+    logger.info(f'\nCategory Statistics - Modified Z-scores (showing first 10 months):')
+    # Show only first 10 modified Z-score columns to avoid overwhelming output
+    mod_z_display = mod_z_df.iloc[:, :10] if len(mod_z_df.columns) > 10 else mod_z_df
+    logger.info(f'{format_dataframe_for_logging(mod_z_display.T, max_cols=20)}')
+    if len(mod_z_df.columns) > 10:
+        logger.info(f'  ... (showing 10 of {len(mod_z_df.columns)} months)')
 
 # Identify outliers using modified Z-score threshold (e.g., |mod_z| > 2.5)
-print('\nOutliers (|modified Z-score| > 2.5):')
-outlier_threshold = 2.5
+logger.info('\n' + '='*60)
+logger.info('OUTLIERS (|modified Z-score| > 2.5):')
+logger.info('='*60)
+
+outlier_count = 0
 for category in absolute_matrix.index:
     mod_z_cols = [col for col in category_stats_df.columns if col.startswith('mod_z_')]
     for col in mod_z_cols:
@@ -235,4 +275,12 @@ for category in absolute_matrix.index:
         if not pd.isna(mod_z) and abs(mod_z) > outlier_threshold:
             month = col.replace('mod_z_', '')
             value = absolute_matrix.loc[category, month]
-            print(f'  {category} in {month}: value={value:.2f}, mod_z={mod_z:.2f}')
+            logger.warning(f'  {category} in {month}: value={value:.2f}, mod_z={mod_z:.2f}')
+            outlier_count += 1
+
+if outlier_count == 0:
+    logger.info('  No outliers detected')
+
+logger.info('='*60)
+logger.info('Analysis complete')
+logger.info('='*60)
