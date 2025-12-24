@@ -6,159 +6,10 @@ import numpy as np
 import logging
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap, BoundaryNorm
-
-
-truncation = True
-truncationDateDown = '2024-10-30'
-truncationDateUp = '2026-01-01'
-outlier_threshold = 2.0
+from utils.logging_utils import setup_logging, format_dataframe_for_logging
+from utils.plotting_utils import plot_expenses_with_outliers, plot_outlier_mask
 
 logger = logging.getLogger(__name__)
-
-debug=False
-save_dir = 'results'
-
-
-def plot_expenses_with_outliers(
-    expense_matrix: pd.DataFrame,
-    outlier_mask: pd.DataFrame,
-    save_dir: str,
-    show: bool = False,
-):
-    from pathlib import Path
-    from datetime import datetime
-
-    Path(save_dir).mkdir(parents=True, exist_ok=True)
-    filepath = Path(save_dir) / f"expenses_with_outliers.png"
-
-    values = expense_matrix.values
-
-    fig, ax = plt.subplots(figsize=(12, 6))
-
-    # Base heatmap (values)
-    im = ax.imshow(values, aspect="auto")
-    cbar = plt.colorbar(im, ax=ax)
-    cbar.set_label("Expense amount")
-
-    # Overlay outliers as red X
-    outlier_positions = np.where(outlier_mask.values)
-    ax.scatter(
-        outlier_positions[1],  # x = columns
-        outlier_positions[0],  # y = rows
-        marker="x",
-        c='red',
-        s=80,
-        linewidths=2,
-        zorder=3,
-    )
-
-    ax.set_xticks(range(len(expense_matrix.columns)))
-    ax.set_xticklabels(expense_matrix.columns, rotation=45, ha="right")
-
-    ax.set_yticks(range(len(expense_matrix.index)))
-    ax.set_yticklabels(expense_matrix.index)
-
-    ax.set_title("Expense Matrix with Outliers Highlighted")
-    ax.set_xlabel("Month")
-    ax.set_ylabel("Category")
-
-    plt.tight_layout()
-    plt.savefig(filepath, dpi=150)
-    plt.close(fig)
-
-    logger.info(f"Expense + outlier overlay plot saved to: {filepath}")
-
-    if show:
-        plt.show()
-
-    return filepath
-
-def plot_outlier_mask(outlier_mask: pd.DataFrame, threshold: float, save_dir: str, show: bool = False):
-    """
-    Plots the outlier mask for a graphical display of which monthly values are considered outliers.
-
-    """
-
-    from pathlib import Path
-    from datetime import datetime
-    from matplotlib.colors import ListedColormap, BoundaryNorm
-
-    Path(save_dir).mkdir(parents=True, exist_ok=True)
-
-    #timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filepath = f"{save_dir}/outlier_mask.png"
-
-    #cmap = ListedColormap(["#f0f0f0", "#d62728"])
-    cmap = ListedColormap(["#069AF3", "#FF6347"])
-    norm = BoundaryNorm([-0.5, 0.5, 1.5], cmap.N)
-
-    fig, ax = plt.subplots(figsize=(12, 6))
-    im = ax.imshow(outlier_mask.values, cmap=cmap, norm=norm, aspect="auto")
-
-    ax.set_xticks(range(len(outlier_mask.columns)))
-    ax.set_xticklabels(outlier_mask.columns, rotation=45, ha="right")
-
-    ax.set_yticks(range(len(outlier_mask.index)))
-    ax.set_yticklabels(outlier_mask.index)
-
-    ax.set_title(f"Outlier Mask (Threshold: MAD > {threshold})")
-    ax.set_xlabel("Category")
-    ax.set_ylabel("Month")
-
-    cbar = plt.colorbar(im, ax=ax, ticks=[0, 1])
-    cbar.set_ticklabels(["Normal", "Outlier"])
-
-    plt.tight_layout()
-    plt.savefig(filepath, dpi=150)
-    plt.close(fig)
-
-    logger.info(f"Outlier mask plot saved to: {filepath}")
-
-    if show:
-        plt.show()
-
-    return filepath
-
-def setup_logging(log_file: str = "results/results.log", mode: str = "w", level=logging.INFO):
-    """
-    Configure logging handlers (file + console). Replaces existing handlers.
-
-    mode="w" overwrites previous logs; mode="a" appends.
-    """
-    logger.setLevel(level)
-
-    # Clear existing handlers to avoid duplicate logs when re-running
-    while logger.handlers:
-        handler = logger.handlers[0]
-        logger.removeHandler(handler)
-        handler.close()
-
-    formatter = logging.Formatter('%(message)s')
-
-    fh = logging.FileHandler(log_file, mode=mode)
-    fh.setFormatter(formatter)
-    logger.addHandler(fh)
-
-    ch = logging.StreamHandler()
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
-
-    return logger
-
-def format_dataframe_for_logging(df, max_cols=None):
-    """
-    Format dataframe for logging with better readability.
-    Optionally limit number of columns shown if too wide.
-    """
-    if max_cols and len(df.columns) > max_cols:
-        # Show first few and last few columns
-        first_cols = df.iloc[:, :max_cols//2]
-        last_cols = df.iloc[:, -max_cols//2:]
-        # Create ellipsis column
-        ellipsis_series = pd.Series(['...'] * len(df), index=df.index, name='...')
-        formatted = pd.concat([first_cols, ellipsis_series, last_cols], axis=1)
-        return formatted.to_string()
-    return df.to_string()
 
 def compute_outlier_statistics(absolute_matrix):
     """
@@ -262,10 +113,13 @@ def remove_outliers_from_matrix(absolute_matrix, category_stats_df, outlier_thre
     return cleaned_matrix, outlier_mask
 
 def no_outlier_dataframe(
-    truncationDateDown: str = truncationDateDown,
-    truncationDateUp: str = truncationDateUp,
-    outlier_threshold: float = outlier_threshold,
+    truncate: bool, 
+    truncationDateDown: str,
+    truncationDateUp: str,
+    outlier_threshold: float = 2.0,
     setup_logs: bool = True,
+    save_dir: str = 'results',
+    debug: bool = True,
 ):
     """
     Load finance data, compute monthly category matrices, detect outliers
@@ -281,22 +135,19 @@ def no_outlier_dataframe(
         Boolean mask of detected outliers (True = outlier).
     """
 
-    if setup_logs:
-        setup_logging(level=logging.INFO)
-
     df = load_finance_dataframe(
         spreadsheet_name="Gastos Pablo",
         credentials_path="config/service_account_keys.json",
     )
 
     logger.info("=" * 60)
-    logger.info("Starting financial analysis")
+    logger.info("Starting outlier detection")
     logger.info("=" * 60)
 
     # Ensure Fecha is datetime
     df["Fecha"] = pd.to_datetime(df["Fecha"], errors="coerce")
 
-    if truncation:
+    if truncate:
         df = df[
             (df["Fecha"] > pd.to_datetime(truncationDateDown))
             & (df["Fecha"] < pd.to_datetime(truncationDateUp))
@@ -305,12 +156,15 @@ def no_outlier_dataframe(
     months = df["sheet_name"].unique()
     logger.info(f"Dataframe truncated. Analyzing months: {months}")
 
+    income_subtracted_expenses = 'Cantidad menos inversiones'
     expenses = [c for c in numeric_cols if c != "Ingreso"]
+    expenses.insert(1,income_subtracted_expenses)
+
     monthly_results = {}
 
     for month in months:
         month_df = df[df["sheet_name"] == month]
-
+        month_df.insert(month_df.columns.get_loc("Cantidad") + 1, income_subtracted_expenses, 0.0*len(df.index))
         logger.debug(f'{month} df head:\n{month_df.head()}')
 
         if month_df.empty:
@@ -328,6 +182,7 @@ def no_outlier_dataframe(
         
         # Calculate sums for expense categories
         monthly_sum = month_df[expenses].sum()
+        monthly_sum[income_subtracted_expenses] = monthly_sum["Cantidad"] - monthly_sum["Inversiones"]
         
         # Get income (should be single value in first row)
         monthly_income = month_df["Ingreso"].iloc[0] if len(month_df) > 0 else np.nan
@@ -389,12 +244,12 @@ def no_outlier_dataframe(
 
     if mod_z_cols:
         mod_z_df = category_stats_df[mod_z_cols].round(2)
-        logger.info(f'\nCategory Statistics - Modified Z-scores (showing first 10 months):')
-        # Show only first 10 modified Z-score columns to avoid overwhelming output
-        mod_z_display = mod_z_df.iloc[:, :10] if len(mod_z_df.columns) > 10 else mod_z_df
+        logger.info(f'\nCategory Statistics - Modified Z-scores:')
+        # mod_z_display = mod_z_df.iloc[:, :10] if len(mod_z_df.columns) > 10 else mod_z_df # Show only first 10 modified Z-score columns to avoid overwhelming output
+        mod_z_display = mod_z_df
         logger.info(f'{format_dataframe_for_logging(mod_z_display.T, max_cols=20)}')
-        if len(mod_z_df.columns) > 10:
-            logger.info(f'  ... (showing 10 of {len(mod_z_df.columns)} months)')
+        #if len(mod_z_df.columns) > 10:
+        #    logger.info(f'  ... (showing 10 of {len(mod_z_df.columns)} months)')
 
     # Identify and remove outliers
     logger.info('\n' + '='*60)
@@ -419,19 +274,27 @@ def no_outlier_dataframe(
     else:
         logger.info(f'  Total outliers found: {outlier_count}')
 
-    # Remove outliers and create cleaned matrix
+    # Remove outliers and create clean matrices
     cleaned_absolute_matrix, outlier_mask = remove_outliers_from_matrix(
         absolute_matrix, category_stats_df, outlier_threshold
     )
 
+    cleaned_normalized_matrix, outlier_mask = remove_outliers_from_matrix(
+        normalized_matrix, category_stats_df, outlier_threshold
+    )
+
     logger.info('\n' + '='*60)
-    logger.info('CLEANED DATA (outliers removed):')
+    logger.info('CLEAN DATA (outliers removed):')
     logger.info('='*60)
 
     # Show cleaned matrix
     cleaned_matrix_T = cleaned_absolute_matrix.T.round(2)
-    logger.info(f'\nCleaned expense matrix (absolute) - Transposed:')
+    logger.info(f'\nClean expense matrix (absolute) - Transposed:')
     logger.info(f'{format_dataframe_for_logging(cleaned_matrix_T, max_cols=15)}')
+
+    cleaned_norm_matrix_T = cleaned_normalized_matrix.T.round(2)
+    logger.info(f'\nClean normalized matrix - Transposed:')
+    logger.info(f'{format_dataframe_for_logging(cleaned_norm_matrix_T, max_cols=15)}')
 
     # Show outlier mask
     if outlier_count > 0:
@@ -444,19 +307,33 @@ def no_outlier_dataframe(
     logger.info('='*60)
 
     # Export cleaned matrix for further analysis
-    logger.info(f'\nCleaned matrix available for statistical analysis:')
+    logger.info(f'\Clean matrices available for statistical analysis:')
     logger.info(f'  - Use "cleaned_absolute_matrix" for analysis without outliers')
-    logger.info(f'  - Use "cleaned_stats_df" for summary statistics on cleaned data')
+    logger.info(f'  - Use "cleaned_normalized_matrix" for a ratio-based analysis without outliers')
+    logger.info(f'  - Use "cleaned_stats_df" for summary statistics on cleaned data\n')
 
     # Plot outlier mask
     plot_outlier_mask(outlier_mask_T, outlier_threshold, save_dir)
     plot_expenses_with_outliers(absolute_matrix_T, outlier_mask_T, save_dir)
 
-    return cleaned_absolute_matrix, outlier_mask 
+    return cleaned_absolute_matrix, cleaned_normalized_matrix, outlier_mask 
 
 if __name__ == "__main__":
-    cleaned_matrix, outlier_mask = no_outlier_dataframe()
 
-    print("\nScript executed successfully.")
-    print(f"Cleaned matrix shape: {cleaned_matrix.shape}")
-    print(f"Outlier mask shape: {outlier_mask.shape}")
+    truncationDateDown = '2024-10-30'
+    truncationDateUp = '2026-01-01'
+    outlier_threshold = 2.0
+    debug=False
+    save_dir = 'results'
+
+    from logging_utils import setup_logging
+
+    setup_logging(
+        log_file="results/results.log",
+        level=logging.INFO,
+        mode="a",
+    )
+
+    cleaned_matrix, outlier_mask = no_outlier_dataframe(
+        setup_logs=False
+    )
