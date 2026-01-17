@@ -136,7 +136,7 @@ def plot_expenses_vs_budget(monthly_expenses: pd.DataFrame, budget_df: pd.DataFr
 if __name__ == "__main__":
     spreadsheet_name = "Gastos Pablo"      # change if needed
     credentials = Path("config/service_account_keys.json")
-    ntfy_url="https://ntfy.sh/pablo_budget"
+    ntfy_url="https://ntfy.sh/<url>"
 
     monthly_expenses = get_current_month_expenses(spreadsheet_name, credentials)
     normalized_expenses = normalize_expenses(monthly_expenses, budget_df)
