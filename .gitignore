@@ -1,5 +1,6 @@
 # Google Cloud Services service account key
 ServiceAccountKeys/
+config/service_account_keys.json
 
 # File where personal data is stored
 data/
