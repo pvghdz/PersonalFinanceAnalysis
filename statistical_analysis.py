@@ -1,5 +1,4 @@
 import pandas as pd
-from finance_loader import load_finance_dataframe
 from config.numeric_cols import numeric_cols
 import scipy.stats as stats
 import numpy as np
@@ -110,13 +109,19 @@ def main(produce_log='w'):
 
     # Calculate budget
     monthly_budget = produce_budget(statistics_matrix)
+    normalized_budget = produce_budget(norm_statistics_matrix)
 
     logger.info('\n'+'='*60)
     logger.info('BUDGET')
     logger.info('='*60)
     logger.info('Calculated monthly budget:')
     logger.info(monthly_budget.round(2).to_string())
-    
+    logger.info('\nCalculated normalized budget:')
+    logger.info(normalized_budget.round(2).to_string())
+
+    # Produce budget JSON file
+    monthly_budget.to_json("results/monthly_budget.json", orient="index", indent=4, force_ascii=False)
+    normalized_budget.to_json("results/normalized_budget.json", orient="index", indent=4, force_ascii=False)
 
 if __name__ == "__main__":
     main('w')

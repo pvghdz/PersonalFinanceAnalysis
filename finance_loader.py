@@ -30,7 +30,7 @@ class _LocalSpreadsheet:
             for name, df in self._sheets.items()
         ]
 
-def load_finance_dataframe(spreadsheet_name: str, credentials_path: str | Path):
+def load_finance_dataframe(spreadsheet_name: str, credentials_path: str | Path, worksheet_name: str | None = None):
     """
     Load all worksheets from a Google Spreadsheet and return a clean DataFrame.
     Input: Spreadsheet name and credentials to open it
@@ -55,8 +55,14 @@ def load_finance_dataframe(spreadsheet_name: str, credentials_path: str | Path):
             scopes=scopes,
         )
         client = gspread.authorize(creds)
+        
         spreadsheet = client.open(spreadsheet_name)
-    
+
+        if worksheet_name is not None:
+            worksheets = [spreadsheet.worksheet(worksheet_name)]
+        else:
+            worksheets = spreadsheet.worksheets()
+
     except Exception as e:
         print(e)
         logger.warning(e)
@@ -68,7 +74,7 @@ def load_finance_dataframe(spreadsheet_name: str, credentials_path: str | Path):
     # CLEAN DATA
     dfs = []
 
-    for ws in spreadsheet.worksheets():
+    for ws in worksheets:
         df_ws = clean_single_worksheet(ws)
         if not df_ws.empty:
             dfs.append(df_ws)

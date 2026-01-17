@@ -135,10 +135,7 @@ def no_outlier_dataframe(
         Boolean mask of detected outliers (True = outlier).
     """
 
-    df = load_finance_dataframe(
-        spreadsheet_name="Gastos Pablo",
-        credentials_path="config/service_account_keys.json",
-    )
+    df = load_finance_dataframe(spreadsheet_name="Gastos Pablo", credentials_path="config/service_account_keys.json", worksheet_name=None) # None = examine all worksheets
 
     logger.info("=" * 60)
     logger.info("Starting outlier detection")
