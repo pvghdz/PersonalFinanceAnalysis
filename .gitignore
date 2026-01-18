@@ -7,12 +7,18 @@ data/
 
 # Results log
 results.log
+results/
 
 # DS_Store
 .DS_Store
+config/.DS_Store
+retults/.DS_Store
+utils/.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
+config/__pycache__/
+results/__pycache__/
 *.py[codz]
 *$py.class
 

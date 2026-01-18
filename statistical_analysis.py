@@ -1,10 +1,8 @@
 import argparse
 import logging
 from datetime import datetime
-
 import numpy as np
 import pandas as pd
-
 from config.numeric_cols import numeric_cols
 from detect_outliers import no_outlier_dataframe
 from utils.logging_utils import setup_logging
@@ -161,18 +159,8 @@ def main():
     logger.info(normalized_budget.round(2).to_string())
 
     # Save outputs
-    monthly_budget.to_json(
-        f"{args.save_dir}/monthly_budget.json",
-        orient="index",
-        indent=4,
-        force_ascii=False
-    )
-    normalized_budget.to_json(
-        f"{args.save_dir}/normalized_budget.json",
-        orient="index",
-        indent=4,
-        force_ascii=False
-    )
+    monthly_budget.to_json(f"{args.save_dir}/monthly_budget.json", orient="index", indent=4, force_ascii=False)
+    normalized_budget.to_json(f"{args.save_dir}/normalized_budget.json", orient="index", indent=4, force_ascii=False)
 
 
 if __name__ == "__main__":
