@@ -15,7 +15,7 @@ This project provides tools to:
 
 ## Scripts
 
-### `finance_loader.py`
+### `utils/finance_loader.py`
 
 **Purpose**: Data loading module that connects to Google Sheets and retrieves financial data.
 
@@ -30,11 +30,11 @@ This project provides tools to:
 
 **Dependencies**: `gspread`, `google-auth`, `pandas`
 
+**Import**: `from utils.finance_loader import load_finance_dataframe`
+
 ---
 
-### `detect_outliers.py`
-
-**Note to self**: Might be better off as an _utils.py script
+### `utils/detect_outliers.py`
 
 **Purpose**: Detects outliers in expense categories using modified Z-scores based on Median Absolute Deviation (MAD).
 
@@ -56,6 +56,8 @@ This project provides tools to:
 - Visualization plots saved to `results/` directory
 
 **Dependencies**: `pandas`, `numpy`, `scipy`, `matplotlib`
+
+**Import**: `from utils.detect_outliers import no_outlier_dataframe`
 
 ---
 
@@ -85,7 +87,7 @@ This project provides tools to:
 python statistical_analysis.py -l w --tdown 2024-11-01 --tup 2025-12-31 --outlier-threshold 2.0
 ```
 
-**Dependencies**: `pandas`, `numpy`, `detect_outliers`
+**Dependencies**: `pandas`, `numpy`, `utils.detect_outliers`
 
 ---
 
@@ -106,54 +108,48 @@ python statistical_analysis.py -l w --tdown 2024-11-01 --tup 2025-12-31 --outlie
 - `normalize_expenses(monthly_expenses, budget_df)`: Normalizes expenses against budget
 - `plot_expenses_vs_budget(monthly_expenses, budget_df)`: Creates visualization
 
-**Dependencies**: `pandas`, `matplotlib`, `finance_loader`
+**Dependencies**: `pandas`, `matplotlib`, `utils.finance_loader`, `utils.expense_analysis_utils`
 
 ---
 
-### `http_evaluate_current_expenses.py`
-
-**Purpose**: Evaluates current expenses and sends notifications via HTTP using ntfy.sh.
-
-**Functionality**:
-- Performs the same expense evaluation as `evaluate_current_expenses.py`
-- Formats expense data for notification
-- Sends notifications via HTTP POST to ntfy.sh:
-  - Monthly expenses in absolute values (€)
-  - Normalized expenses as percentages (%)
-- Useful for automated expense monitoring and alerts
-
-**Configuration**:
-- Set `ntfy_url` variable to your ntfy.sh topic URL
-
-**Dependencies**: `pandas`, `requests`, `finance_loader`, `utils.ntfy_utils`
-
----
-
-### `mqtt_evaluate_current_expenses.py`
+### `utils/mqtt_utils.py`
 
 **Purpose**: Evaluates current expenses and publishes data via MQTT for integration with home automation systems (e.g., Node-RED).
 
 **Functionality**:
-- Performs expense evaluation similar to other evaluation scripts
+- Performs expense evaluation using functions from `utils.expense_analysis_utils`
 - Publishes expense data as JSON to MQTT topics:
   - `finance/monthly_expenses`: Current month expenses
   - `finance/normalized_expenses`: Normalized expenses
   - `finance/plot/expenses_vs_budget`: Base64-encoded plot image
 - Enables integration with MQTT-based dashboards and automation systems
 
-**Configuration**:
-- Set MQTT connection parameters: `MQTT_HOST`, `MQTT_PORT`, `MQTT_USER`, `MQTT_PASSWORD`
-- Configure `MQTT_BASE_TOPIC` (default: "finance")
+**Key Functions**:
+- `publish_dataframe(df, topic_suffix)`: Publishes DataFrame as JSON to MQTT
+- `publish_plot(fig, topic_suffix)`: Publishes matplotlib figure as base64-encoded image
 
-**Dependencies**: `pandas`, `matplotlib`, `paho-mqtt`, `finance_loader`
+**Configuration**:
+- MQTT connection parameters are loaded from `config/mqtt_config.py`
+- Edit `config/mqtt_config.py` to set: `mqtt_host`, `mqtt_port`, `mqtt_user`, `mqtt_password`, `mqtt_base_topic`
+
+**Dependencies**: `pandas`, `matplotlib`, `paho-mqtt`, `utils.finance_loader`, `utils.expense_analysis_utils`, `config.mqtt_config`
+
+**Usage**: Can be run as a script (if `__main__` block is present) or imported as a module
 
 ---
 
-### `DownloadData.py`
+### Utility Modules (`utils/`)
 
-**Purpose**: Legacy script for downloading and processing Google Sheets data.
+The `utils/` folder contains reusable modules:
 
-**Note**: This script appears to be a development/testing script with commented-out Google Sheets API code and local Excel file reading. The functionality has been superseded by `finance_loader.py`.
+- **`finance_loader.py`**: Core data loading functionality (see above)
+- **`detect_outliers.py`**: Outlier detection functionality (see above)
+- **`expense_analysis_utils.py`**: Shared functions for expense analysis (`get_current_month_expenses`, `normalize_expenses`, `plot_expenses_vs_budget`)
+- **`mqtt_utils.py`**: MQTT publishing utilities (see above)
+- **`ntfy_utils.py`**: HTTP notification utilities for ntfy.sh
+- **`logging_utils.py`**: Logging configuration and formatting utilities
+- **`plotting_utils.py`**: Plotting utilities for expense visualizations
+- **`finance_loader_utils.py`**: Helper functions for data cleaning and parsing
 
 ---
 
@@ -163,6 +159,7 @@ python statistical_analysis.py -l w --tdown 2024-11-01 --tup 2025-12-31 --outlie
 
 - `config/service_account_keys.json`: Google service account credentials for accessing Google Sheets
 - `config/numeric_cols.py`: Defines which columns contain numeric data
+- `config/mqtt_config.py`: MQTT connection configuration (if using MQTT features)
 - `data/Gastos Pablo.xlsx`: Local backup of expense data (optional)
 
 ### Output Files
@@ -187,15 +184,20 @@ pip install -r requirements.txt
    - Place it in `config/service_account_keys.json`
    - Share your Google Sheet with the service account email
 
-3. Configure notification endpoints (if using HTTP/MQTT scripts):
-   - Edit `http_evaluate_current_expenses.py` to set your ntfy.sh URL
-   - Edit `mqtt_evaluate_current_expenses.py` to configure MQTT connection details
+3. Configure notification endpoints (if using MQTT):
+   - Edit `config/mqtt_config.py` to set your MQTT connection parameters:
+     - `mqtt_host`: MQTT broker hostname or IP
+     - `mqtt_port`: MQTT broker port (default: 1883)
+     - `mqtt_user`: MQTT username
+     - `mqtt_password`: MQTT password
+     - `mqtt_base_topic`: Base topic for publishing (default: "finance")
 
 ## How to use / Workflow
 
 1. **Generate Budgets**: Run `statistical_analysis.py` to analyze historical data and generate budgets
-2. **Monitor Expenses**: Run `evaluate_current_expenses.py` (or HTTP/MQTT variants) to check current month spending
-3. **Review Outliers**: Check `detect_outliers.py` output to identify unusual spending patterns
+2. **Monitor Expenses**: Run `evaluate_current_expenses.py` to check current month spending
+3. **Review Outliers**: The outlier detection is automatically performed by `statistical_analysis.py`, or you can use `utils/detect_outliers.py` directly
+4. **MQTT Publishing**: Run `utils/mqtt_utils.py` (if configured) to publish expense data to MQTT topics
 
 ## Dependencies
 

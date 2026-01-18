@@ -4,7 +4,7 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 from config.numeric_cols import numeric_cols
-from detect_outliers import no_outlier_dataframe
+from utils.detect_outliers import no_outlier_dataframe
 from utils.logging_utils import setup_logging
 
 logger = logging.getLogger(__name__)

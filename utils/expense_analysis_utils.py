@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 from pathlib import Path
-from finance_loader import load_finance_dataframe
+from utils.finance_loader import load_finance_dataframe
 from config.numeric_cols import numeric_cols
 
 def get_current_month_expenses(spreadsheet_name: str, credentials_path: str | Path, budget_data: pd.DataFrame) -> pd.DataFrame:

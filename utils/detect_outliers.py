@@ -1,5 +1,9 @@
 import pandas as pd
-from finance_loader import load_finance_dataframe
+try:
+    from .finance_loader import load_finance_dataframe
+except ImportError:
+    # Fallback for when running as __main__
+    from utils.finance_loader import load_finance_dataframe
 from config.numeric_cols import numeric_cols
 import scipy.stats as stats
 import numpy as np
@@ -323,7 +327,7 @@ if __name__ == "__main__":
     debug=False
     save_dir = 'results'
 
-    from logging_utils import setup_logging
+    from utils.logging_utils import setup_logging
 
     setup_logging(
         log_file="results/results.log",
