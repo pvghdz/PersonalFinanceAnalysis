@@ -5,26 +5,6 @@ from pathlib import Path
 from finance_loader import load_finance_dataframe
 from config.numeric_cols import numeric_cols
 
-# ------------------------------------------------------------------
-# IMPORT YOUR EXISTING HELPERS
-# ------------------------------------------------------------------
-# from your_module import load_finance_dataframe
-# from your_module import logger
-
-budget_df = pd.read_json("results/monthly_budget.json", orient="index")
-normalized_budget_df = pd.read_json("results/normalized_budget.json", orient="index")
-
-
-# ------------------------------------------------------------------
-# BUDGET DEFINITION (from your printed output)
-# ------------------------------------------------------------------
-BUDGET_DATA = budget_df
-print("Budget data:")
-print(BUDGET_DATA)
-
-# ------------------------------------------------------------------
-# MAIN LOGIC
-# ------------------------------------------------------------------
 def get_current_month_expenses(spreadsheet_name: str, credentials_path: str | Path) -> pd.DataFrame:
     """
     Download expenses and return total expenses per category for the current month.
@@ -40,10 +20,7 @@ def get_current_month_expenses(spreadsheet_name: str, credentials_path: str | Pa
         raise ValueError("No expense data was loaded.")
 
     now = datetime.now()
-    current_month_df = df[
-        (df["Fecha"].dt.year == now.year) &
-        (df["Fecha"].dt.month == now.month)
-    ]
+    current_month_df = df[(df["Fecha"].dt.year == now.year) & (df["Fecha"].dt.month == now.month)]
 
     if current_month_df.empty:
         raise ValueError("No expenses found for the current month.")
@@ -58,10 +35,7 @@ def get_current_month_expenses(spreadsheet_name: str, credentials_path: str | Pa
     monthly_expenses = pd.DataFrame([monthly_expenses], index=["Current expenses"])
 
     # Ensure same column order & fill missing
-    monthly_expenses = monthly_expenses.reindex(
-        columns=BUDGET_DATA.columns,
-        fill_value=0.0,
-    )
+    monthly_expenses = monthly_expenses.reindex(columns=BUDGET_DATA.columns, fill_value=0.0)
 
     print("\nMonthly expenses:")
     print(monthly_expenses.head())
@@ -128,18 +102,3 @@ def plot_expenses_vs_budget(monthly_expenses: pd.DataFrame, budget_df: pd.DataFr
 
     plt.tight_layout()
     plt.show()
-
-# ------------------------------------------------------------------
-# ENTRY POINT
-# ------------------------------------------------------------------
-if __name__ == "__main__":
-    SPREADSHEET_NAME = "Gastos Pablo"      # change if needed
-    CREDENTIALS_PATH = Path("config/service_account_keys.json")
-
-    monthly_expenses = get_current_month_expenses(
-        SPREADSHEET_NAME,
-        CREDENTIALS_PATH
-    )
-
-    normalize_expenses(monthly_expenses, budget_df)
-    #plot_expenses_vs_budget(monthly_expenses, BUDGET_DATA)

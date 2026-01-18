@@ -1,24 +1,24 @@
 {
     "Expected expenses":{
-        "Cantidad":2135.43,
-        "Cantidad menos inversiones":1706.735,
-        "Alimentos":153.85,
-        "Recurrentes":861.165,
+        "Cantidad":819.335,
+        "Cantidad menos inversiones":819.335,
+        "Alimentos":106.485,
+        "Recurrentes":261.64,
         "Extraordinarios":0.0,
-        "Salidas":94.5,
-        "Viajes":156.21,
-        "Otros\/Únicos":223.46,
-        "Inversiones":500.0
+        "Salidas":27.1,
+        "Viajes":150.96,
+        "Otros\/Únicos":73.975,
+        "Inversiones":0.0
     },
     "Budget":{
-        "Cantidad":2635.79,
-        "Cantidad menos inversiones":1899.91,
-        "Alimentos":169.82,
-        "Recurrentes":928.7,
+        "Cantidad":1030.685,
+        "Cantidad menos inversiones":1030.685,
+        "Alimentos":130.185,
+        "Recurrentes":271.055,
         "Extraordinarios":0.0,
-        "Salidas":120.95,
-        "Viajes":281.02,
-        "Otros\/Únicos":331.385,
-        "Inversiones":1000.0
+        "Salidas":30.1,
+        "Viajes":275.09,
+        "Otros\/Únicos":107.55,
+        "Inversiones":0.0
     }
 }

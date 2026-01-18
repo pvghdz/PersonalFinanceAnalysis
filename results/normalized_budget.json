@@ -1,24 +1,24 @@
 {
     "Expected expenses":{
-        "Cantidad":0.5838602327,
-        "Cantidad menos inversiones":0.414932782,
-        "Alimentos":0.0385960423,
-        "Recurrentes":0.2551835201,
+        "Cantidad":0.796453894,
+        "Cantidad menos inversiones":0.796453894,
+        "Alimentos":0.1022443137,
+        "Recurrentes":0.2610843044,
         "Extraordinarios":0.0,
-        "Salidas":0.0265910028,
-        "Viajes":0.0406153036,
-        "Otros\/Únicos":0.0613158482,
-        "Inversiones":0.1597632947
+        "Salidas":0.0246899954,
+        "Viajes":0.161627409,
+        "Otros\/Únicos":0.0717523997,
+        "Inversiones":0.0
     },
     "Budget":{
-        "Cantidad":0.6594315814,
-        "Cantidad menos inversiones":0.4593115215,
-        "Alimentos":0.046264586,
-        "Recurrentes":0.2714357359,
+        "Cantidad":0.9543729906,
+        "Cantidad menos inversiones":0.9543729906,
+        "Alimentos":0.1277040678,
+        "Recurrentes":0.2837011061,
         "Extraordinarios":0.0,
-        "Salidas":0.0309360021,
-        "Viajes":0.0739354335,
-        "Otros\/Únicos":0.0854503281,
-        "Inversiones":0.2175388524
+        "Salidas":0.0292585653,
+        "Viajes":0.297702437,
+        "Otros\/Únicos":0.1049524172,
+        "Inversiones":0.0
     }
 }
