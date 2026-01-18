@@ -82,7 +82,7 @@ This project provides tools to:
 
 **Usage Example**:
 ```bash
-python statistical_analysis.py --tdown 2024-01-01 --tup 2025-01-01 --outlier-threshold 2.0
+python statistical_analysis.py -l w --tdown 2024-11-01 --tup 2025-12-31 --outlier-threshold 2.0
 ```
 
 **Dependencies**: `pandas`, `numpy`, `detect_outliers`
