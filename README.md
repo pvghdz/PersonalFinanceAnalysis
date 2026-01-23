@@ -202,7 +202,7 @@ All results are saved to the `results/` directory:
 
 1. Install dependencies:
 ```bash
-pip install -r utils/requirements.txt
+pip install -r config/requirements.txt
 ```
 
 2. Set up Google Sheets API credentials:
