@@ -110,6 +110,33 @@ python statistical_analysis.py -l w --tdown 2024-11-01 --tup 2025-12-31 --outlie
 
 **Dependencies**: `pandas`, `matplotlib`, `utils.finance_loader`, `utils.expense_analysis_utils`
 
+**Command-line Arguments**:
+- `-m, --method`: How to transmit results — `"n"` for ntfy, `"m"` for MQTT, `"none"` to only print locally (default: `"n"`)
+- `--url`: ntfy URL when using `--method n` (default: `https://ntfy.sh/pablo_budget`)
+- `--mqtt-host`: MQTT broker host when using `--method m`
+- `--spreadsheet`: Google Sheets spreadsheet name (default: `"Gastos Pablo"`)
+- `--credentials`: Path to the Google API credentials JSON file (default: `config/service_account_keys.json`)
+
+**Usage Examples**:
+
+Send the current month expense breakdown via **ntfy** (default method):
+
+```bash
+python evaluate_current_expenses.py -m n --url https://ntfy.sh/pablo_budget --spreadsheet "Gastos Pablo" --credentials config/service_account_keys.json
+```
+
+Send the current month expense breakdown via **MQTT**:
+
+```bash
+python evaluate_current_expenses.py -m m --mqtt-host <IP> --spreadsheet "Gastos Pablo" --credentials config/service_account_keys.json
+```
+
+Run the evaluation **without transmitting** results anywhere (just prints to the console):
+
+```bash
+python evaluate_current_expenses.py -m none
+```
+
 ---
 
 ### `utils/mqtt_utils.py`
@@ -175,7 +202,7 @@ All results are saved to the `results/` directory:
 
 1. Install dependencies:
 ```bash
-pip install -r requirements.txt
+pip install -r utils/requirements.txt
 ```
 
 2. Set up Google Sheets API credentials:
